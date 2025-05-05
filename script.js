@@ -9,7 +9,7 @@ const groupConfig = {
     'group-1': { name: '科研课题组', defaultCount: 15 },
     'group-2': { name: '硬件课题组', defaultCount: 3 },
     'group-3': { 
-        name: '大模型辅助课程学习', 
+        name: '大模型辅助课程学习组', 
         subgroups: {
             'linear-algebra': { name: '线性代数', defaultCount: 31 },
             'data-structure': { name: '数据结构与算法', defaultCount: 40 }
@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化周选择器
     initWeekSelectors();
     
-    // 初始化大模型辅助课程学习的子分组切换
+    // 初始化大模型辅助课程学习组的子分组切换
     initSubgroupTabs();
     
     // 初始化添加成员按钮
@@ -81,13 +81,6 @@ document.addEventListener('DOMContentLoaded', function() {
         <p>注意：大量图片可能会占用较多本地存储空间，请定期导出备份数据。</p>
     `;
     settingsCard.appendChild(folderInfo);
-});
-
-// 在页面加载完成时调用 loadData
-
-document.addEventListener('DOMContentLoaded', function () {
-    console.log('页面加载完成！'); // 调试信息
-    loadData(); // 调用 loadData 函数加载数据
 });
 
 // 初始化导航
@@ -169,7 +162,7 @@ function initWeekSelectors() {
     });
 }
 
-// 初始化大模型辅助课程学习的子分组切换
+// 初始化大模型辅助课程学习组的子分组切换
 function initSubgroupTabs() {
     const subgroupTabs = document.querySelectorAll('.subgroup-tab');
     
@@ -276,66 +269,19 @@ function initModal() {
     document.getElementById('delete-member').addEventListener('click', deleteMember);
 }
 
-// 添加数据验证函数
-function validateData(data) {
-    if (!data || typeof data !== 'object') {
-        throw new Error('Invalid data format');
-    }
-    // 添加更多验证逻辑，例如检查必填字段
-    if (!data.name || !data.id) {
-        throw new Error('Missing required fields: name or id');
-    }
-}
-
-// 修改 saveData 函数，添加数据验证和用户提示
-async function saveData(data) {
-    try {
-        validateData(data); // 验证数据
-
-        const response = await fetch('/api/savedata', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-        });
-
-        if (!response.ok) {
-            const errorDetails = await response.json();
-            throw new Error(errorDetails.message || '保存数据失败');
+// 加载数据
+function loadData() {
+    const savedData = localStorage.getItem('experimentCourseData');
+    if (savedData) {
+        try {
+            groupData = JSON.parse(savedData);
+        } catch (e) {
+            console.error('加载数据出错:', e);
+            groupData = initializeEmptyData();
         }
-
-        const result = await response.json();
-        console.log('数据保存成功:', result);
-        alert('数据保存成功！'); // 提示用户保存成功
-    } catch (error) {
-        console.error('保存数据时出错:', error);
-        alert(`保存数据时出错: ${error.message}`); // 提示用户错误信息
+    } else {
+        groupData = initializeEmptyData();
     }
-}
-
-// 修改 loadData 函数，添加数据加载和错误处理
-async function loadData() {
-    try {
-        console.log('正在从后端加载数据...'); // 调试日志
-        const response = await fetch('/api/savedata');
-        if (!response.ok) {
-            const errorDetails = await response.json();
-            throw new Error(`加载数据失败: ${errorDetails.message || response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log('数据加载成功:', data); // 调试日志
-        updateUIWithData(data);
-    } catch (error) {
-        console.error('加载数据时出错:', error); // 调试日志
-        alert(`加载数据时出错: ${error.message}`);
-    }
-}
-
-// 添加一个辅助函数，用于将加载的数据更新到 UI
-function updateUIWithData(data) {
-    // 遍历数据并更新到页面元素
-    console.log('更新页面数据:', data);
-    // 根据具体的 UI 结构实现更新逻辑
 }
 
 // 初始化空数据
@@ -345,7 +291,7 @@ function initializeEmptyData() {
     // 遍历组别配置
     for (const [groupId, config] of Object.entries(groupConfig)) {
         if (groupId === 'group-3') {
-            // 大模型辅助课程学习特殊处理
+            // 大模型辅助课程学习组特殊处理
             data[groupId] = {
                 members: [],
                 subgroups: {
@@ -414,6 +360,16 @@ function initializeEmptyData() {
     return data;
 }
 
+// 保存数据
+function saveData() {
+    try {
+        localStorage.setItem('experimentCourseData', JSON.stringify(groupData));
+    } catch (e) {
+        console.error('保存数据出错:', e);
+        alert('保存数据出错，可能是数据过大，请导出并备份数据。');
+    }
+}
+
 // 更新UI
 function updateUI() {
     // 更新总览页面
@@ -465,7 +421,7 @@ function updateGroupUI(groupId) {
     const memberCount = getMemberCount(groupId);
     document.getElementById(`${groupId}-member-count`).textContent = memberCount;
     
-    // 特殊处理大模型辅助课程学习
+    // 特殊处理大模型辅助课程学习组
     if (groupId === 'group-3') {
         // 更新子分组成员数量
         const linearAlgebraCount = group.members.filter(m => m.subgroup === 'linear-algebra').length;
@@ -584,7 +540,7 @@ function updateSettingsUI() {
     document.getElementById('group-5-count-setting').value = getMemberCount('group-5');
 }
 
-// 修改 showMemberModal 函数，添加文件上传功能
+// 显示成员详情模态框
 function showMemberModal(member, groupId) {
     const modal = document.getElementById('member-modal');
     const modalTitle = document.getElementById('modal-title');
@@ -597,16 +553,29 @@ function showMemberModal(member, groupId) {
     const tabHeaders = document.querySelector('.tab-headers');
     const tabContent = document.querySelector('.tab-content');
 
+// 修改 showMemberModal 函数，添加文件上传功能
+function showMemberModal(member, groupId) {
+    const modal = document.getElementById('member-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const nameInput = document.getElementById('member-name');
+    const idInput = document.getElementById('member-id');
+    const projectTopicContainer = document.getElementById('project-topic-container');
+    const projectTopicInput = document.getElementById('member-project-topic');
+    const subgroupContainer = document.getElementById('subgroup-select-container');
+    const subgroupSelect = document.getElementById('member-subgroup');
+    const tabHeaders = document.querySelector('.tab-headers');
+    const tabContent = document.querySelector('.tab-content');
+    
     // 保存当前成员和组别
     currentMember = member;
-
+    
     // 设置模态框标题
     modalTitle.textContent = member ? '编辑成员进度' : '添加新成员';
-
+    
     // 设置成员信息
     nameInput.value = member ? member.name : '';
     idInput.value = member ? member.id : '';
-
+    
     // 处理项目主题输入框（仅科研和硬件课题组需要）
     if (groupId === 'group-1' || groupId === 'group-2') {
         projectTopicContainer.style.display = 'block';
@@ -614,48 +583,48 @@ function showMemberModal(member, groupId) {
     } else {
         projectTopicContainer.style.display = 'none';
     }
-
-    // 处理分组选择器（仅大模型辅助课程学习需要）
+    
+    // 处理分组选择器（仅大模型辅助课程学习组需要）
     if (groupId === 'group-3') {
         subgroupContainer.style.display = 'block';
         subgroupSelect.value = member ? member.subgroup : 'linear-algebra';
     } else {
         subgroupContainer.style.display = 'none';
     }
-
+    
     // 生成周次选项卡
     tabHeaders.innerHTML = '';
     tabContent.innerHTML = '';
-
+    
     for (let week = 1; week <= 11; week++) {
         // 创建选项卡标题
         const tabHeader = document.createElement('div');
         tabHeader.className = `tab-header ${week === currentWeek ? 'active' : ''}`;
         tabHeader.textContent = `第${week}周`;
         tabHeader.setAttribute('data-week', week);
-
+        
         // 选项卡点击事件
         tabHeader.addEventListener('click', function() {
             // 移除所有active类
             document.querySelectorAll('.tab-header').forEach(header => header.classList.remove('active'));
             document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
-
+            
             // 添加当前选项卡的active类
             this.classList.add('active');
             document.querySelector(`.tab-panel[data-week="${week}"]`).classList.add('active');
         });
-
+        
         tabHeaders.appendChild(tabHeader);
-
+        
         // 创建选项卡内容
         const tabPanel = document.createElement('div');
         tabPanel.className = `tab-panel ${week === currentWeek ? 'active' : ''}`;
         tabPanel.setAttribute('data-week', week);
-
+        
         // 获取该周的进度内容
         const progressContent = member && member.progress[week] ? member.progress[week] : '';
-
-        // 如果是大模型辅助课程学习，显示本周学习主题
+        
+        // 如果是大模型辅助课程学习组，显示本周学习主题
         let topicInfo = '';
         if (groupId === 'group-3' && member) {
             const subgroup = member.subgroup;
@@ -664,47 +633,41 @@ function showMemberModal(member, groupId) {
                 topicInfo = `<div class="week-topic">本周学习主题: <strong>${topic}</strong></div>`;
             }
         }
-
+        
         tabPanel.innerHTML = `
             ${topicInfo}
             <div class="progress-content">
                 <textarea placeholder="请输入第${week}周的进度内容...">${progressContent}</textarea>
             </div>
-            <div class="file-upload">
-                <label for="file-upload-week-${week}">上传文件：</label>
-                <input type="file" id="file-upload-week-${week}" accept=".pdf,.doc,.docx,.txt,.jpg,.png,.gif">
-            </div>
         `;
-
+        
         tabContent.appendChild(tabPanel);
     }
-
+    
     // 显示模态框
     modal.style.display = 'flex';
-
+    
     // 保存组别信息到保存按钮
     document.getElementById('save-member').setAttribute('data-group', groupId);
 }
 
-// 修改 saveMember 函数，添加调试日志
+// 保存成员信息
 function saveMember() {
     const groupId = document.getElementById('save-member').getAttribute('data-group');
     const nameInput = document.getElementById('member-name');
     const idInput = document.getElementById('member-id');
     const projectTopicInput = document.getElementById('member-project-topic');
     const subgroupSelect = document.getElementById('member-subgroup');
-
+    
     const name = nameInput.value.trim();
     const id = idInput.value.trim();
-    const projectTopic = projectTopicInput ? projectTopicInput.value.trim() : '';
-
-    console.log('保存成员数据:', { name, id, projectTopic }); // 调试日志
-
+    const projectTopic = projectTopicInput.value.trim();
+    
     if (!name || !id) {
         alert('请填写姓名和学号');
         return;
     }
-
+    
     // 获取所有周的进度内容
     const progress = {};
     document.querySelectorAll('.tab-panel').forEach(panel => {
@@ -712,57 +675,102 @@ function saveMember() {
         const content = panel.querySelector('textarea').value.trim();
         progress[week] = content;
     });
-
+    
+    // 如果是编辑现有成员
     if (currentMember) {
+        // 更新成员信息
         currentMember.name = name;
         currentMember.id = id;
+        
+        // 如果是科研或硬件课题组，更新项目主题
         if (groupId === 'group-1' || groupId === 'group-2') {
             currentMember.projectTopic = projectTopic;
         }
+        
+        // 如果是大模型辅助课程学习组，可能需要更新分组
         if (groupId === 'group-3') {
             currentMember.subgroup = subgroupSelect.value;
         }
+        
+        // 更新进度
         currentMember.progress = progress;
-    } else {
-        const newMember = { name, id, progress };
+    } 
+    // 如果是添加新成员
+    else {
+        // 创建新成员对象
+        const newMember = {
+            name: name,
+            id: id,
+            progress: progress
+        };
+        
+        // 如果是科研或硬件课题组，设置项目主题
         if (groupId === 'group-1' || groupId === 'group-2') {
             newMember.projectTopic = projectTopic;
         }
+        
+        // 如果是大模型辅助课程学习组，设置分组
         if (groupId === 'group-3') {
             newMember.subgroup = subgroupSelect.value;
         }
+        
+        // 确保组别数据存在
         if (!groupData[groupId]) {
-            groupData[groupId] = { members: [] };
+            if (groupId === 'group-3') {
+                groupData[groupId] = {
+                    members: [],
+                    subgroups: {
+                        'linear-algebra': { topics: {} },
+                        'data-structure': { topics: {} }
+                    }
+                };
+            } else {
+                groupData[groupId] = { members: [] };
+            }
         }
+        
+        // 添加新成员
         groupData[groupId].members.push(newMember);
     }
-
-    saveData(groupData);
+    
+    // 保存数据
+    saveData();
+    
+    // 关闭模态框
     document.getElementById('member-modal').style.display = 'none';
+    
+    // 更新UI
     updateUI();
 }
 
 // 删除成员
-async function deleteMember() {
-    if (!currentMember) return;
-
-    const groupId = document.getElementById('save-member').getAttribute('data-group');
-    if (!confirm(`确定要删除成员 ${currentMember.name} (${currentMember.id}) 吗？此操作不可撤销！`)) return;
-
-    try {
-        const response = await fetch('/api/savedata', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: currentMember.id }),
-        });
-        if (!response.ok) throw new Error('Failed to delete member');
-        groupData[groupId].members = groupData[groupId].members.filter(m => m.id !== currentMember.id);
-        saveData(groupData);
-        updateUI();
-    } catch (error) {
-        console.error('删除成员时出错:', error);
-        alert('删除成员时出错，请检查网络连接。');
+function deleteMember() {
+    if (!currentMember) {
+        return;
     }
+    
+    const groupId = document.getElementById('save-member').getAttribute('data-group');
+    
+    if (!confirm(`确定要删除成员 ${currentMember.name} (${currentMember.id}) 吗？此操作不可撤销！`)) {
+        return;
+    }
+    
+    // 从数据中移除当前成员
+    if (groupData[groupId] && groupData[groupId].members) {
+        const index = groupData[groupId].members.findIndex(m => m.id === currentMember.id);
+        if (index !== -1) {
+            groupData[groupId].members.splice(index, 1);
+        }
+    }
+    
+    // 保存数据
+    saveData();
+    
+    // 关闭模态框
+    document.getElementById('member-modal').style.display = 'none';
+    
+    // 更新UI
+    updateUI();
 }
 
 // 保存成员数量设置
@@ -783,7 +791,7 @@ function saveMemberCount() {
     adjustMemberCount('group-5', group5Count);
     
     // 保存数据
-    saveData(groupData);
+    saveData();
     
     // 更新UI
     updateUI();
@@ -825,7 +833,7 @@ function adjustMemberCount(groupId, targetCount) {
     }
 }
 
-// 调整大模型辅助课程学习子分组成员数量
+// 调整大模型辅助课程学习组子分组成员数量
 function adjustSubgroupMemberCount(subgroupId, targetCount) {
     if (!groupData['group-3']) {
         groupData['group-3'] = {
@@ -925,7 +933,7 @@ function importData(event) {
 // 重置数据
 function resetData() {
     groupData = initializeEmptyData();
-    saveData(groupData);
+    saveData();
     updateUI();
     alert('所有数据已重置');
 }
@@ -970,7 +978,7 @@ function calculateGroupCompletion(groupId, week) {
     let completedCount = 0;
     
     if (groupId === 'group-3') {
-        // 大模型辅助课程学习特殊处理
+        // 大模型辅助课程学习组特殊处理
         for (const member of group.members) {
             if (member.progress[week] && member.progress[week].trim() !== '') {
                 completedCount++;
@@ -988,4 +996,4 @@ function calculateGroupCompletion(groupId, week) {
     // 计算完成百分比
     const percentage = Math.round((completedCount / group.members.length) * 100);
     return percentage;
-}
+} 
